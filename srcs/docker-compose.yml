@@ -1,0 +1,61 @@
+version: "3"
+
+services:
+    mariadb:
+        build: requirements/mariadb              # soit un path ou une string, afin que docker-compose va build
+        container_name: mariadb
+        env_file: ./.env
+        image: mariadb
+        networks:                                # Permet de se connecter et de lancer les instruction RUN 
+            - inception
+                                 # suffisament explicite
+        volumes: 
+          - mariadb_vol:/var/lib/mysql # Permet de definir un endroit de stockage persistant et perenne
+        restart: always                          # Specifie que le container always restart 
+
+    wordpress:
+        build: requirements/wordpress
+        container_name: wordpress
+        env_file: ./.env
+        image: wordpress
+        depends_on: 
+            - mariadb
+        networks:
+            - inception
+        volumes:
+            - wordpress_vol:/var/www/html
+        restart: always
+
+    nginx:
+        build: requirements/nginx
+        container_name: nginx
+        env_file: ./.env
+        image: nginx
+        depends_on: 
+            - wordpress
+        networks:
+            - inception
+        ports:
+            - "443:443"
+        volumes:
+            - ./log_ng:/var/log/nginx/
+            - wordpress_vol:/var/www/html
+        restart: always
+
+networks:
+    inception:
+        driver: bridge # par default sur un single host on met bridge
+volumes:
+    mariadb_vol:
+       driver: local # par default
+       driver_opts:
+         type: none
+         device: /home/mbaxmann/data/mariadb_vol
+         o: bind
+
+    wordpress_vol:
+      driver: local
+      driver_opts:
+        type: none  # ?
+        device: /home/mbaxmann/data/wordpress_vol #machine de l'hote ou on lance le container 
+        o: bind                           # ? 
